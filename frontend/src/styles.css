@@ -1,0 +1,184 @@
+@import "leaflet/dist/leaflet.css";
+
+/* ResQ Mangaluru Design System Variables */
+:root {
+  --primary-color: #0f2942;
+  --primary-light: #1a4267;
+  --primary-dark: #091a2b;
+  --accent-teal: #0d9488;
+  --accent-teal-light: #14b8a6;
+  --accent-blue: #0284c7;
+  --danger-color: #ef4444;
+  --danger-dark: #dc2626;
+  --warning-color: #f59e0b;
+  --success-color: #10b981;
+  --info-color: #3b82f6;
+
+  --bg-light: #f8fafc;
+  --bg-card: #ffffff;
+  --border-color: #e2e8f0;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --sidebar-width: 260px;
+  --header-height: 64px;
+
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+  background-color: var(--bg-light);
+  color: var(--text-main);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Global utility badges */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 9999px;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+.badge-demo {
+  background-color: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
+.badge-low {
+  background-color: #e0f2fe;
+  color: #0369a1;
+}
+
+.badge-medium {
+  background-color: #fef9c3;
+  color: #854d0e;
+}
+
+.badge-high {
+  background-color: #ffedd5;
+  color: #c2410c;
+}
+
+.badge-critical {
+  background-color: #fee2e2;
+  color: #991b1b;
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Status colors */
+.badge-reported { background-color: #fef08a; color: #854d0e; }
+.badge-acknowledged { background-color: #e0e7ff; color: #3730a3; }
+.badge-assigned { background-color: #c7d2fe; color: #312e81; }
+.badge-in-progress { background-color: #fed7aa; color: #9a3412; }
+.badge-resolved { background-color: #d1fae5; color: #065f46; }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .7; }
+}
+
+/* Base button styles */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.55rem 1.15rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.2s ease-in-out;
+}
+
+.btn-primary {
+  background-color: var(--primary-color);
+  color: #ffffff;
+}
+.btn-primary:hover {
+  background-color: var(--primary-light);
+}
+
+.btn-danger {
+  background-color: var(--danger-color);
+  color: #ffffff;
+}
+.btn-danger:hover {
+  background-color: var(--danger-dark);
+}
+
+.btn-teal {
+  background-color: var(--accent-teal);
+  color: #ffffff;
+}
+.btn-teal:hover {
+  background-color: var(--accent-teal-light);
+}
+
+.btn-outline {
+  background-color: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+}
+.btn-outline:hover {
+  background-color: #f1f5f9;
+}
+
+/* Form Styles */
+.form-group {
+  margin-bottom: 1.15rem;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #334155;
+  margin-bottom: 0.35rem;
+}
+
+.form-control {
+  width: 100%;
+  padding: 0.6rem 0.85rem;
+  font-size: 0.875rem;
+  border: 1px solid var(--border-color);
+  border-radius: 0.45rem;
+  background-color: #ffffff;
+  color: var(--text-main);
+  transition: border-color 0.2s ease;
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+}
+
+/* Fix leaflet container height */
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+  z-index: 10;
+}

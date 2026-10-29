@@ -1,0 +1,422 @@
+import { Component, OnInit, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { Router, RouterModule } from '@angular/router';
+import { ApiService } from '../../services/api.service';
+import { AuthService } from '../../services/auth.service';
+import * as L from 'leaflet';
+
+@Component({
+  selector: 'app-report-sos',
+  standalone: true,
+  imports: [CommonModule, FormsModule, RouterModule],
+  template: `
+    <div class="sos-container">
+      <!-- SOS Header -->
+      <div class="sos-header">
+        <div class="header-titles">
+          <h2>🚨 Submit Emergency SOS / Incident Report</h2>
+          <p>Provide verified details to dispatch emergency rescue responders in Mangaluru.</p>
+        </div>
+        <div class="sos-pulse-tag">IMMEDIATE DISPATCH QUEUE</div>
+      </div>
+
+      @if (successMessage) {
+        <div class="alert alert-success">
+          <h4>✅ {{ successMessage }}</h4>
+          <p>Your report has been received and registered into the live MongoDB database. Incident ID: <code>{{ createdIncidentId }}</code></p>
+          <div class="mt-2">
+            <a [routerLink]="['/incidents', createdIncidentId]" class="btn btn-primary btn-sm">Track Incident Status Live →</a>
+          </div>
+        </div>
+      }
+
+      @if (errorMessage) {
+        <div class="alert alert-error">⚠️ {{ errorMessage }}</div>
+      }
+
+      <div class="sos-grid">
+        <!-- Form Column -->
+        <div class="card form-card">
+          <form (ngSubmit)="submitSOS()" #sosForm="ngForm">
+            <div class="form-group">
+              <label class="form-label" for="category">Emergency Category *</label>
+              <select id="category" name="category" class="form-control" [(ngModel)]="category" required>
+                <option value="Flood">🌊 Flood / Waterlogging</option>
+                <option value="Landslide">⛰️ Landslide / Ghat Collapse</option>
+                <option value="Fire">🔥 Fire Outbreak</option>
+                <option value="Heavy rainfall">⛈️ Heavy Rainfall / Tree Fall</option>
+                <option value="Medical emergency">🚑 Critical Medical Emergency</option>
+                <option value="Accident">💥 Accident / Structural Collapse</option>
+                <option value="Other emergency">⚠️ Other Emergency</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="title">Incident Headline / Summary *</label>
+              <input
+                type="text"
+                id="title"
+                name="title"
+                class="form-control"
+                [(ngModel)]="title"
+                required
+                placeholder="e.g. Flash flood trapped 4 families near Jeppu"
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="severity">Severity Level *</label>
+              <div class="severity-options">
+                <label class="severity-radio low">
+                  <input type="radio" name="severity" [(ngModel)]="severity" value="Low" />
+                  <span>Low</span>
+                </label>
+                <label class="severity-radio medium">
+                  <input type="radio" name="severity" [(ngModel)]="severity" value="Medium" />
+                  <span>Medium</span>
+                </label>
+                <label class="severity-radio high">
+                  <input type="radio" name="severity" [(ngModel)]="severity" value="High" />
+                  <span>High</span>
+                </label>
+                <label class="severity-radio critical">
+                  <input type="radio" name="severity" [(ngModel)]="severity" value="Critical" />
+                  <span>Critical (Life Threat)</span>
+                </label>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="description">Detailed Description & Needs *</label>
+              <textarea
+                id="description"
+                name="description"
+                rows="4"
+                class="form-control"
+                [(ngModel)]="description"
+                required
+                placeholder="Specify number of stranded individuals, water level, elderly/children, special medical needs..."
+              ></textarea>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="address">Incident Address / Landmark in Mangaluru *</label>
+              <input
+                type="text"
+                id="address"
+                name="address"
+                class="form-control"
+                [(ngModel)]="address"
+                required
+                placeholder="e.g. Near Kadri Toll Gate, Mangaluru"
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="phone">Contact Phone for Rescue Team *</label>
+              <input
+                type="tel"
+                id="phone"
+                name="phone"
+                class="form-control"
+                [(ngModel)]="contactPhone"
+                required
+                placeholder="+91 98765 43210"
+              />
+            </div>
+
+            <button type="submit" class="btn btn-danger btn-block btn-lg" [disabled]="isSubmitting">
+              @if (isSubmitting) {
+                <span>Broadcasting SOS to Response Team...</span>
+              } @else {
+                <span>🚨 DISPATCH EMERGENCY SOS REPORT</span>
+              }
+            </button>
+          </form>
+        </div>
+
+        <!-- Location & Map Column -->
+        <div class="card map-card">
+          <div class="map-card-header">
+            <h3>📍 Incident Geolocation Pinpoint</h3>
+            <button type="button" class="btn btn-outline btn-xs" (click)="requestBrowserLocation()">
+              🎯 Use My Device GPS
+            </button>
+          </div>
+          <p class="map-instructions">
+            Click anywhere on the Mangaluru map below to place or adjust your exact emergency pin:
+          </p>
+
+          <div id="sosMap" class="sos-map-box"></div>
+
+          <div class="coords-display">
+            <span>Selected Latitude: <strong>{{ latitude | number:'1.4-4' }}</strong></span>
+            <span>Selected Longitude: <strong>{{ longitude | number:'1.4-4' }}</strong></span>
+          </div>
+
+          <div class="location-warning">
+            🔒 Location coordinates are submitted securely to authorized Mangaluru disaster dispatchers only.
+          </div>
+        </div>
+      </div>
+    </div>
+  `,
+  styles: [`
+    .sos-container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .sos-header {
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 1.25rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      box-shadow: var(--shadow-sm);
+    }
+    .header-titles h2 {
+      font-size: 1.35rem;
+      color: var(--danger-color);
+      font-weight: 700;
+    }
+    .header-titles p {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 0.2rem;
+    }
+    .sos-pulse-tag {
+      background: #fee2e2;
+      color: #991b1b;
+      font-size: 0.75rem;
+      font-weight: 800;
+      padding: 0.35rem 0.75rem;
+      border-radius: 9999px;
+      border: 1px solid #fecaca;
+      animation: pulse 1.5s infinite;
+    }
+    .alert {
+      padding: 1rem 1.25rem;
+      border-radius: 8px;
+      margin-bottom: 1.5rem;
+    }
+    .alert-success {
+      background-color: #ecfdf5;
+      border: 1px solid #a7f3d0;
+      color: #065f46;
+    }
+    .alert-error {
+      background-color: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #991b1b;
+    }
+    .sos-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+    }
+    .card {
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 1.5rem;
+      box-shadow: var(--shadow-sm);
+    }
+    .severity-options {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.5rem;
+    }
+    .severity-radio {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+    .severity-radio.low { background: #f0f9ff; }
+    .severity-radio.medium { background: #fefce8; }
+    .severity-radio.high { background: #fff7ed; }
+    .severity-radio.critical { background: #fef2f2; color: #991b1b; }
+
+    .btn-block {
+      width: 100%;
+      margin-top: 1rem;
+    }
+    .btn-lg {
+      padding: 0.85rem;
+      font-size: 0.95rem;
+      font-weight: 700;
+    }
+    .map-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+    .map-card-header h3 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--primary-color);
+    }
+    .map-instructions {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 0.75rem;
+    }
+    .sos-map-box {
+      height: 380px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      margin-bottom: 0.75rem;
+    }
+    .coords-display {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.75rem;
+      background: #f1f5f9;
+      padding: 0.5rem 0.75rem;
+      border-radius: 6px;
+      margin-bottom: 0.75rem;
+    }
+    .location-warning {
+      font-size: 0.75rem;
+      color: #64748b;
+    }
+    @media (max-width: 900px) {
+      .sos-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  `]
+})
+export class ReportSosComponent implements OnInit {
+  api = inject(ApiService);
+  auth = inject(AuthService);
+  router = inject(Router);
+
+  title = '';
+  category = 'Flood';
+  severity = 'High';
+  description = '';
+  address = 'Jeppu, Mangaluru, Karnataka';
+  contactPhone = '';
+  latitude = 12.8510;
+  longitude = 74.8580;
+
+  isSubmitting = false;
+  successMessage = '';
+  errorMessage = '';
+  createdIncidentId = '';
+
+  private map!: L.Map;
+  private marker!: L.Marker;
+
+  ngOnInit(): void {
+    if (this.auth.currentUser()) {
+      this.contactPhone = this.auth.currentUser()?.phone || '';
+      if (this.auth.currentUser()?.address) {
+        this.address = this.auth.currentUser()!.address!;
+      }
+    }
+    setTimeout(() => this.initMap(), 200);
+  }
+
+  private initMap(): void {
+    const defaultCoords: L.LatLngExpression = [this.latitude, this.longitude];
+
+    this.map = L.map('sosMap', {
+      center: defaultCoords,
+      zoom: 13
+    });
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(this.map);
+
+    this.marker = L.marker(defaultCoords, { draggable: true }).addTo(this.map);
+    this.marker.bindPopup('<b>Selected Emergency Spot</b><br>Drag to adjust coordinates.').openPopup();
+
+    this.marker.on('dragend', () => {
+      const pos = this.marker.getLatLng();
+      this.latitude = pos.lat;
+      this.longitude = pos.lng;
+    });
+
+    this.map.on('click', (e: L.LeafletMouseEvent) => {
+      this.latitude = e.latlng.lat;
+      this.longitude = e.latlng.lng;
+      this.marker.setLatLng(e.latlng);
+    });
+  }
+
+  requestBrowserLocation(): void {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          this.latitude = pos.coords.latitude;
+          this.longitude = pos.coords.longitude;
+          if (this.map && this.marker) {
+            const newPos: L.LatLngExpression = [this.latitude, this.longitude];
+            this.map.setView(newPos, 15);
+            this.marker.setLatLng(newPos);
+            this.marker.bindPopup('📍 Your GPS Location').openPopup();
+          }
+        },
+        () => {
+          alert('GPS permission was denied or unavailable. Center coordinates kept at Mangaluru.');
+        }
+      );
+    } else {
+      alert('Geolocation is not supported by your browser.');
+    }
+  }
+
+  submitSOS(): void {
+    if (!this.title || !this.description || !this.contactPhone) {
+      this.errorMessage = 'Please complete all required fields.';
+      return;
+    }
+
+    this.isSubmitting = true;
+    this.errorMessage = '';
+    this.successMessage = '';
+
+    const payload = {
+      title: this.title,
+      description: this.description,
+      category: this.category,
+      severity: this.severity,
+      address: this.address,
+      latitude: this.latitude,
+      longitude: this.longitude,
+      contactPhone: this.contactPhone
+    };
+
+    this.api.createIncident(payload).subscribe({
+      next: (res) => {
+        this.isSubmitting = false;
+        if (res.success) {
+          this.successMessage = res.message;
+          this.createdIncidentId = res.data._id;
+          // Reset form fields
+          this.title = '';
+          this.description = '';
+        }
+      },
+      error: (err) => {
+        this.isSubmitting = false;
+        this.errorMessage = err.error?.message || 'Failed to submit incident. Please check server connection.';
+      }
+    });
+  }
+}

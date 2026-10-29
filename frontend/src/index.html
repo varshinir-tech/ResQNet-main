@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>ResQNet - Disaster Relief & Emergency Response System</title>
+  <base href="/">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0f2942">
+  <meta name="description" content="Disaster Management and Emergency Coordination System with Offline Reporting Support">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="manifest" href="manifest.webmanifest">
+</head>
+<body>
+  <app-root></app-root>
+  <script>
+    // Register Service Worker for PWA & Offline Support
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('/sw.js')
+          .then(function(reg) {
+            console.log('[ResQNet ServiceWorker] Registered successfully with scope:', reg.scope);
+          })
+          .catch(function(err) {
+            console.warn('[ResQNet ServiceWorker] Registration failed:', err);
+          });
+      });
+    }
+  </script>
+</body>
+</html>
